@@ -6,5 +6,27 @@
 </head>
 <body>
 <script type="text/javascript" src="miniPromise.js"></script>
+<script type="text/javascript">
+	  var pMaker = function(timeout){
+	    return new miniPromise(function(reslove){
+	      setTimeout(function(){
+	        reslove('timeOut',timeout)
+	      },timeout)
+	    })
+	  }
+
+	  var p1 = pMaker(1000)
+	  var p2 = pMaker(4000)
+
+
+
+	    p1.then(function(data,timeOut){
+			console.log('1:' + data + timeOut)
+			return p2
+	    }).then(function(data,timeOut){
+	    	console.log('2:' + data + timeOut)
+	    })
+
+</script>
 </body>
 </html>

@@ -1,53 +1,56 @@
-(function(export){
+(function(exports){
   var toArray = Function.prototype.call.bind(Array.prototype.slice)
+  var isPromise = function(args) {
+    if(args.length > 0 && args[0] instanceof miniPromise) {
+      return args[0]
+    }
+    return null
+  }
 
   var miniPromise = function(fn){
     var doneList = [],
-      status = 'pending',
-      value = null
+        status = 'pending',
+        value = null
 
     var reslove = function(){
-        status = 'fullfill'
-        value = toArray(arguments)
+      status = 'fullfill'
+      var innerPromise = isPromise(arguments)
+      if(innerPromise){
+        innerPromise.then(function(){
+          setTimeout(() => {
+            doneList.forEach( e => e.apply(this,toArray(arguments)))
+          },0)
+        })
+      } else {
         setTimeout(() => {
-        doneList.forEach( e => e.apply(this,value))
+          doneList.forEach( e => e.apply(this,toArray(arguments)))
         },0)
       }
+    }
 
-    miniPromise.prototype.then = MPromise.prototype.then || function(onFullfill){
+    var handle = function(defered) {
       switch(status) {
         case 'pending':
-          fn(reslove)
-          doneList.push(onFullfill)
+          doneList.push(defered.onFullfill)
           break
         case 'fullfill':
-          onFullfill.apply(this,value)
+          var retPromise = defered.onFullfill.apply(this,value)
+          defered.reslove(retPromise)
         break
         case 'reject':
         break
       }
-      return this
     }
+
+    miniPromise.prototype.then = miniPromise.prototype.then || function(onFullfill){
+      return new miniPromise(function(reslove){
+        handle({
+          onFullfill:onFullfill || null,
+          reslove:reslove
+        })
+      })
+    }
+    fn(reslove)
   }
-
-  var pMaker = function(){
-    return new miniPromise(function(reslove){
-      setTimeout(function(){
-        reslove('timeOut',1000)
-      },1000)
-    })
-  }
-
-  var p1 = pMaker()
-  var p2 = pMaker()
-
-
-  setTimeout(function(){
-    p1.then(function(data,timeOut){
-      console.log('1:' + data + timeOut)
-      return p2
-    })
-  },2000)
-
-  export.miniPromise = miniPromise
+  exports.miniPromise = miniPromise
 })(window)
