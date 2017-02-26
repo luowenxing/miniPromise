@@ -16,16 +16,20 @@
 	  }
 
 	  var p1 = pMaker(1000)
-	  var p2 = pMaker(4000)
+	  var p2 = pMaker(2000)
 
 
-
-	    p1.then(function(data,timeOut){
+	  setTimeout(function(){
+		var p3 = p1.then(function(data,timeOut){
 			console.log('1:' + data + timeOut)
-			return p2
 	    }).then(function(data,timeOut){
 	    	console.log('2:' + data + timeOut)
+	    	return p2
+	    }).then(function(data,timeOut){
+	    	console.log('3:' + data + timeOut)
 	    })
+	  },3000)
+	  
 
 </script>
 </body>

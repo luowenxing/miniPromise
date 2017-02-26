@@ -1,55 +1,50 @@
 (function(exports){
   var toArray = Function.prototype.call.bind(Array.prototype.slice)
-  var isPromise = function(args) {
-    if(args.length > 0 && args[0] instanceof miniPromise) {
-      return args[0]
-    }
-    return null
-  }
 
   var miniPromise = function(fn){
-    var doneList = [],
+    var defereds = [],
         status = 'pending',
         value = null
 
-    var reslove = function(){
+    var reslove = function(promise){
       status = 'fullfill'
-      var innerPromise = isPromise(arguments)
-      if(innerPromise){
-        innerPromise.then(function(){
-          setTimeout(() => {
-            doneList.forEach( e => e.apply(this,toArray(arguments)))
-          },0)
-        })
-      } else {
-        setTimeout(() => {
-          doneList.forEach( e => e.apply(this,toArray(arguments)))
+      value = arguments
+      setTimeout(() => {
+        defereds.forEach( defered => {
+            var ret = defered.onFullfill.apply(this,toArray(arguments))
+            if(ret && ret.then ) {
+              ret.then(function(){
+                defered.bridgeFullfill.apply(this,toArray(arguments))
+              })
+            } else {
+              defered.bridgeFullfill.apply(this,toArray(arguments))
+            }
         },0)
-      }
-    }
-
-    var handle = function(defered) {
-      switch(status) {
-        case 'pending':
-          doneList.push(defered.onFullfill)
-          break
-        case 'fullfill':
-          var retPromise = defered.onFullfill.apply(this,value)
-          defered.reslove(retPromise)
-        break
-        case 'reject':
-        break
-      }
-    }
-
-    miniPromise.prototype.then = miniPromise.prototype.then || function(onFullfill){
-      return new miniPromise(function(reslove){
-        handle({
-          onFullfill:onFullfill || null,
-          reslove:reslove
-        })
       })
     }
+
+    this.then = function(onFullfill){
+      return new miniPromise(function(rsv){
+        switch(status) {
+          case 'pending':
+            defereds.push({
+              onFullfill:onFullfill,
+              bridgeFullfill:rsv
+            })
+            break
+          case 'fullfill':
+            defereds.push({
+              onFullfill:onFullfill,
+              bridgeFullfill:rsv
+            })
+            reslove.apply(this,toArray(value))
+          break
+          case 'reject':
+          break
+        }
+      })
+    }
+
     fn(reslove)
   }
   exports.miniPromise = miniPromise
