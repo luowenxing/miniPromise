@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta content-type="UTF8">
+	<meta charset="UTF8">
 	<title></title>
 </head>
 <body>
 <script type="text/javascript" src="miniPromise.js"></script>
 <script type="text/javascript">
 	  var pMaker = function(timeout){
-	    return new miniPromise(function(reslove){
+	    return new miniPromise(function(reslove,reject){
 	      setTimeout(function(){
-	        reslove('timeOut',timeout)
+	      	if(timeout === 1000) {
+				reslove(timeout)
+	      	}else {
+	      		reject(timeout)
+	      	}
+			
 	      },timeout)
 	    })
 	  }
@@ -22,15 +27,23 @@
 	  setTimeout(function(){
 		var p3 = p1.then(function(data,timeOut){
 			console.log('1:' + data + timeOut)
+			return p2
 	    }).then(function(data,timeOut){
 	    	console.log('2:' + data + timeOut)
-	    	return p2
+	    	
+	    },function(reason){
+	    	console.log('rejected,reason:' + reason)
 	    }).then(function(data,timeOut){
 	    	console.log('3:' + data + timeOut)
+	    },function(reason){
+	    	console.log('rejected,reason:' + reason)
 	    })
 	  },3000)
-	  
+	  Array.prototype.flatMap = function(fn){
+	  	return this.map(fn).reduce((s,e) => s.concat(e),[])
+	  }
 
 </script>
 </body>
 </html>
+

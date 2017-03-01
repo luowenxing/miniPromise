@@ -1,51 +1,52 @@
 (function(exports){
-  var toArray = Function.prototype.call.bind(Array.prototype.slice)
 
   var miniPromise = function(fn){
-    var defereds = [],
-        status = 'pending',
-        value = null
+    var blockDefered ,value = null, status = 'pending'
 
-    var reslove = function(promise){
-      status = 'fullfill'
-      value = arguments
-      setTimeout(() => {
-        defereds.forEach( defered => {
-            var ret = defered.onFullfill.apply(this,toArray(arguments))
-            if(ret && ret.then ) {
-              ret.then(function(){
-                defered.bridgeFullfill.apply(this,toArray(arguments))
-              })
-            } else {
-              defered.bridgeFullfill.apply(this,toArray(arguments))
-            }
+    var resloveFunc = function(s){
+      return function(val){
+        status = s
+        value = val
+        setTimeout(function(){
+            handle(blockDefered)
         },0)
-      })
+      }
     }
 
-    this.then = function(onFullfill){
-      return new miniPromise(function(rsv){
-        switch(status) {
-          case 'pending':
-            defereds.push({
-              onFullfill:onFullfill,
-              bridgeFullfill:rsv
+    var handle = function(defered){
+      if(status === 'pending') {
+        blockDefered = defered
+      } else if(defered) {
+        if(status === 'fullfill') {
+          var ret = defered.onFullfill && defered.onFullfill(value)
+          if(ret && ret.then) {
+            ret.then(function(val){
+              defered.bridgeReslove(val)
+            },function(reason){
+              defered.bridgeReject(reason)
             })
-            break
-          case 'fullfill':
-            defereds.push({
-              onFullfill:onFullfill,
-              bridgeFullfill:rsv
-            })
-            reslove.apply(this,toArray(value))
-          break
-          case 'reject':
-          break
+            return
+          } 
+          defered.bridgeReslove(value)
+        } else if(status === 'reject'){ // reject
+          defered.onReject && defered.onReject(value)
+          defered.bridgeReject(value)
         }
-      })
+      }
     }
 
-    fn(reslove)
+    this.then = function(onFullfill,onReject){
+      return new miniPromise(function(bridgeReslove,bridgeReject){
+        handle({
+          onFullfill,
+          bridgeReslove,
+          onReject,
+          bridgeReject
+        })
+      })
+    }
+    fn(resloveFunc('fullfill'),resloveFunc('reject'))
   }
+
   exports.miniPromise = miniPromise
 })(window)
