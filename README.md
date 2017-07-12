@@ -1,2 +1,2 @@
 # miniPromise
-A Promise/A+ implementation
+A simple promise implementation
